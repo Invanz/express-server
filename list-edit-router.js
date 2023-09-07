@@ -12,7 +12,7 @@ router.put("/update/:id", (req, res) => {
 });
 
 router.delete("/delete", (req, res) => {
-  console.log("hola")
+  console.log("hola");
   res.send("Se eliminará la tarea con ID No.");
 });
 
