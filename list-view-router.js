@@ -10,4 +10,8 @@ router.get("/ongoing", (req, res) => {
     res.send("lista de tareas incompletas");
 });
 
+router.use((req, res) => {
+    res.status(404).send("página no encontrada");
+});
+
 module.exports = router;
