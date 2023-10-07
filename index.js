@@ -1,11 +1,9 @@
 const express = require("express");
-const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const port = 3000;
 
 const app = express();
-const listEditRouter = require("./list-edit-router");
-const listViewRouter = require("./list-view-router");
+
 const TaskList = [
     {
         "id":"123456",
@@ -13,59 +11,77 @@ const TaskList = [
         "description":"Walk the dog",
     },
 ];
-const usersDB = [
-    {
-        username: "testuser",
-        password: "user123",
-        rol: "user"
-    },
-    {
-        username: "testadmin",
-        password: "admin123",
-        rol: "admin"
-    }
-]
 
-app.use("/edit", listEditRouter);
-app.use("/view", listViewRouter);
 app.use(express.json());
 app.use((req, res, next) => {
     const method = req.method;
     const methods = ["POST", "PUT", "DELETE", "GET"];
     
     methods.includes(method) ? next() : res.status(400).send("Método inválido");
-})
+});
 
-const authVerification = (req, res, next) => {
-    acessToken = req.headers["authorization"];
-    if (!acessToken) res.status(403).send("No te has autenticado");
-
-    jwt.verify(acessToken, process.env.SECRET_KEY, (err, user) => {
-        err ? res.status(403).send("Acceso denegado") : next();
-    });
+const errorValidation = (req, res, next) => {
+    const {method, body} = req;
+  
+    if (method === "POST"){
+      !Object.keys(req.body).length ? res.status(400).send("No se recibieron datos") : body.description ? next() : res.status(400).send("Los datos están incompletos");
+    };
 };
 
 app.get("/", (req, res) => {
-    res.send(JSON.stringify(TaskList));
-})
-
-app.get("/secretpage", authVerification, (req, res) => {
-    res.status(200).send("Esto es privado jiji");
+    res.status(200).send(JSON.stringify(TaskList));
 });
 
-app.post("/login", (req, res) => {
-    const {username, password} = req.body;
+app.get("/completed", (req, res) => {
+    res.status(200).send(JSON.stringify(TaskList.filter((task) => task.isCompleted)));
+});
 
-    const user = usersDB.find((user) => user.username == username && user.password == password);
+app.get("/ongoing", (req, res) => {
+    res.status(200).send(JSON.stringify(TaskList.filter((task) => !task.isCompleted)));
+});
 
-    if(!user){
-        res.status(401).send("Usuario o contraseña inválido");
-    } else {
-        const token = jwt.sign(user, process.env.SECRET_KEY);
+app.get("/task/:id", (req, res) => {
+    const id= req.params.id;
+    const selectedTask = TaskList.find((task) => task.id == id);
 
-        res.header("authorization", token).json({token});
-    }
+    selectedTask ? res.status(200).send(JSON.stringify(selectedTask)) : res.status(401).send("El ID no es válido");
+});
 
+app.put("/:id", (req, res) => {
+  const id = req.params.id;
+  const index = TaskList.findIndex((task) => task.id == id);
+
+  if (index == -1) {
+    res.status(401).send("El ID no es válido");
+  } else {
+    TaskList[index].isCompleted = !TaskList[index].isCompleted;
+    res.status(200).send(`Tarea con ID No. ${id} actualizada con éxito`);
+  };
+});
+
+app.delete("/:id", (req, res) => {
+  const id = req.params.id;
+  const index = TaskList.findIndex((task) => task.id == id);
+
+  if (index == -1) {
+    res.status(401).send("El ID no es válido");
+  } else {
+    TaskList.splice(index, 1);
+    res.status(200).send(`Se eliminó la tarea con ID No. ${id}`);
+  };
+});
+
+app.post("/", errorValidation, (req, res) => {
+  description = req.body.description;
+  id= TaskList[TaskList.length - 1].id + 1;
+
+  TaskList.push({
+    id,
+    description,
+    isCompleted : false,
+  });
+  
+  res.status(200).send("La tarea se ha creado con éxito");
 });
 
 app.listen(port, (error) => {
