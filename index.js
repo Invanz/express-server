@@ -86,4 +86,4 @@ app.post("/", errorValidation, (req, res) => {
 
 app.listen(port, (error) => {
     error ? console.log(error) : console.log("server listening...");
-})
+});
